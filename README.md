@@ -1,4 +1,4 @@
-# Talktime
+# Airtime
 
 Two stopwatches, one running at a time, to compare how long each person talks. Single static page, no backend, no build.
 

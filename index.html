@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#111418">
-<title>Talktime</title>
+<title>Airtime</title>
 <style>
   :root {
     --bg: #111418;
@@ -66,7 +66,7 @@
 
 <script>
 (() => {
-  const KEY = "talktime:v1";
+  const KEY = "airtime:v1";
   const who = ["a", "b"];
   const el = {};
   for (const w of who) {
@@ -115,7 +115,7 @@
       el[w].state.textContent = st.active === w ? "talking" : "paused";
     }
     document.getElementById("pauseBtn").textContent = st.active ? "Pause" : "Resume";
-    document.title = st.active ? `${fmt(ms[st.active])} · ${st.names[st.active]}` : "Talktime";
+    document.title = st.active ? `${fmt(ms[st.active])} · ${st.names[st.active]}` : "Airtime";
   }
 
   // Screen wake lock so the phone doesn't sleep mid-conversation.
