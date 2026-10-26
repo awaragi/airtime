@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#111418">
+<meta name="theme-color" content="#f4f6f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Airtime">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
@@ -14,12 +15,25 @@
 <title>Airtime</title>
 <style>
   :root {
-    --bg: #111418;
-    --idle: #1a1f26;
-    --text: #e8ecf1;
-    --muted: #7d8794;
-    --a: #3b82f6;
-    --b: #f59e0b;
+    color-scheme: light dark;
+    --bg: #f4f6f9;
+    --idle: #e6eaf0;
+    --text: #151a21;
+    --muted: #5d6773;
+    --line: #c3cad3;
+    --a: #2563eb;
+    --b: #d97706;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111418;
+      --idle: #1a1f26;
+      --text: #e8ecf1;
+      --muted: #7d8794;
+      --line: var(--line);
+      --a: #3b82f6;
+      --b: #f59e0b;
+    }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
@@ -33,18 +47,14 @@
   .side[data-who="a"] { --c: var(--a); }
   .side[data-who="b"] { --c: var(--b); }
   .side.active { background: color-mix(in srgb, var(--c) 28%, var(--idle)); box-shadow: inset 0 0 0 4px var(--c); }
-  .name { font-size: 9cqmin; font-weight: 600; max-width: 100%; color: var(--c); outline: none;
-    border-bottom: 1px dashed transparent; padding: 2px 6px; min-width: 3ch; text-align: center; cursor: text; }
-  .name:focus { border-bottom-color: var(--c); }
-  .time { font-variant-numeric: tabular-nums; font-size: min(30cqw, 48cqh); font-weight: 700; line-height: 1.1; white-space: nowrap; }
+  .time { color: var(--c); font-variant-numeric: tabular-nums; font-size: min(30cqw, 48cqh); font-weight: 700; line-height: 1.1; white-space: nowrap; }
   .share { font-size: min(9cqw, 10cqh); color: var(--muted); margin-top: 1cqh; }
   body { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
-  .name { user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; }
-  dialog { background: var(--idle); color: var(--text); border: 1px solid #2c333c; border-radius: 16px; padding: 24px; max-width: 90vw; }
+  dialog { background: var(--idle); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 24px; max-width: 90vw; }
   dialog::backdrop { background: rgba(0,0,0,.6); }
   dialog p { margin: 0 0 20px; font-size: 1.1rem; text-align: center; }
   dialog .row { display: flex; gap: 12px; justify-content: center; }
-  dialog button { background: transparent; color: var(--text); border: 1px solid #2c333c; border-radius: 999px;
+  dialog button { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 999px;
     padding: 10px 22px; font-size: 1rem; cursor: pointer; }
   dialog p.refresh { margin: 16px 0 0; }
   dialog p.refresh button { border: 0; color: var(--muted); font-size: .9rem; }
@@ -54,12 +64,10 @@
 <body>
 <div id="app">
   <div class="side" data-who="a" id="sideA">
-    <div class="name" id="nameA" contenteditable="plaintext-only" spellcheck="false">Party 1</div>
     <div class="time" id="timeA">0:00</div>
     <div class="share" id="shareA">0%</div>
   </div>
   <div class="side" data-who="b" id="sideB">
-    <div class="name" id="nameB" contenteditable="plaintext-only" spellcheck="false">Party 2</div>
     <div class="time" id="timeB">0:00</div>
     <div class="share" id="shareB">0%</div>
   </div>
@@ -79,17 +87,13 @@
   const who = ["a", "b"];
   const el = {};
   for (const w of who) {
-    el[w] = { side: document.getElementById("side" + w.toUpperCase()), name: document.getElementById("name" + w.toUpperCase()),
+    el[w] = { side: document.getElementById("side" + w.toUpperCase()), 
       time: document.getElementById("time" + w.toUpperCase()), share: document.getElementById("share" + w.toUpperCase()) };
   }
   // state: ms accumulated per side, which side is running (null = paused), and when it started.
-  let st = { ms: { a: 0, b: 0 }, active: null, since: 0, names: { a: "Party 1", b: "Party 2" }, last: "a" };
+  let st = { ms: { a: 0, b: 0 }, active: null, since: 0, last: "a" };
 
   try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.ms) st = { ...st, ...saved }; } catch (e) {}
-  // Drop the old default names from earlier versions.
-  if (["Me", "Speaker 1"].includes(st.names.a)) st.names.a = "Party 1";
-  if (["Wife", "Speaker 2"].includes(st.names.b)) st.names.b = "Party 2";
-  for (const w of who) el[w].name.textContent = st.names[w];
 
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
   const elapsed = (w) => st.ms[w] + (st.active === w ? Date.now() - st.since : 0);
@@ -124,7 +128,7 @@
       el[w].share.textContent = tot ? Math.round((ms[w] / tot) * 100) + "%" : "0%";
       el[w].side.classList.toggle("active", st.active === w);
     }
-    document.title = st.active ? `${fmt(ms[st.active])} · ${st.names[st.active]}` : "Airtime";
+    document.title = st.active ? `${fmt(ms[st.active])}` : "Airtime";
   }
 
   // Screen wake lock: keep the display on whenever the app is open (running or paused).
@@ -142,22 +146,19 @@
 
   for (const w of who) {
     el[w].side.addEventListener("click", () => toggleSide(w));
-    el[w].name.addEventListener("click", (e) => e.stopPropagation());
-    el[w].name.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
-    el[w].name.addEventListener("input", () => { st.names[w] = el[w].name.textContent.trim() || (w === "a" ? "Party 1" : "Party 2"); save(); });
   }
   // Long press (3s) anywhere opens the reset confirmation. Pointer events cover mouse, touch and pen.
   const dlg = document.getElementById("resetDlg");
   let pressTimer = null, pressX = 0, pressY = 0, swallowClick = false;
   const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null; };
   document.addEventListener("pointerdown", (e) => {
-    if (dlg.open || e.target.closest(".name")) return;
+    if (dlg.open) return;
     pressX = e.clientX; pressY = e.clientY;
     pressTimer = setTimeout(() => { pressTimer = null; swallowClick = true; dlg.showModal(); }, 3000);
   });
   document.addEventListener("pointermove", (e) => { if (pressTimer && Math.hypot(e.clientX - pressX, e.clientY - pressY) > 12) cancelPress(); });
   for (const ev of ["pointerup", "pointercancel"]) document.addEventListener(ev, cancelPress);
-  document.addEventListener("contextmenu", (e) => { if (!e.target.closest(".name")) e.preventDefault(); });
+  document.addEventListener("contextmenu", (e) => e.preventDefault());
   // The release that ends a long press must not also toggle a side.
   document.addEventListener("click", (e) => { if (swallowClick) { swallowClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
   document.getElementById("cancelBtn").addEventListener("click", () => dlg.close());

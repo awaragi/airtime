@@ -4,8 +4,8 @@ Two stopwatches, one running at a time, to compare how long each person talks. S
 
 - Tap a side to start it; tap the active side to pause.
 - Space switches to the other side. Left/Right arrows pick a side directly.
+- Each side has its own colour; light and dark themes follow the system.
 - Long-press (3s) anywhere to reset, after a confirmation. The same dialog has "Refresh app" to clear the cache and reload an installed copy.
-- Click a name to rename it. Totals and percentages update live.
 - State is kept in `localStorage`, so a reload keeps the times (and a running timer keeps counting).
 - Keeps the screen awake whenever the app is open (Wake Lock, where supported).
 - Installable PWA (manifest + service worker, works offline, portrait-locked where supported). The layout is always two wide panels stacked top and bottom and scales as you resize the window.
