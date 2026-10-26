@@ -167,6 +167,7 @@
   });
   // Force-refresh for installed copies: drop the service worker and caches, then reload from the network.
   document.getElementById("refreshBtn").addEventListener("click", async () => {
+    dlg.close();
     try {
       for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
       for (const k of await caches.keys()) await caches.delete(k);
