@@ -51,6 +51,8 @@
   .share { font-size: min(9cqw, 10cqh); color: var(--muted); margin-top: 1cqh; }
   body { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
   dialog { background: var(--idle); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 24px; max-width: 90vw; }
+  dialog { position: relative; }
+  dialog .ver { position: absolute; right: 10px; bottom: 6px; font-size: .7rem; color: var(--muted); }
   dialog::backdrop { background: rgba(0,0,0,.6); }
   dialog p { margin: 0 0 20px; font-size: 1.1rem; text-align: center; }
   dialog .row { display: flex; gap: 12px; justify-content: center; }
@@ -79,6 +81,7 @@
     <button id="confirmBtn" class="danger" type="button">Reset</button>
   </div>
   <p class="refresh"><button id="refreshBtn" type="button">Refresh app</button></p>
+  <span class="ver">v7</span>
 </dialog>
 
 <script>

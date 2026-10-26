@@ -12,4 +12,6 @@ Two stopwatches, one running at a time, to compare how long each person talks. S
 
 Install: serve over HTTPS (or localhost) and use the browser's Install / Add to Home Screen option.
 
+Version: shown in the corner of the reset dialog. Bump it in `index.html` (`.ver`) and the `CACHE` name in `sw.js` on every change.
+
 Run: open `index.html`, or `python3 -m http.server` and visit it from a phone on the same network.

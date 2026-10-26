@@ -1,5 +1,5 @@
 // Network-first app shell (falls back to cache offline), so installed copies pick up updates.
-const CACHE = "airtime-v5";
+const CACHE = "airtime-v7";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon.svg"];
 
 self.addEventListener("install", (e) => {
