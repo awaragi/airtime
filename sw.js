@@ -1,5 +1,5 @@
-// Cache-first app shell so Airtime opens and runs offline once installed.
-const CACHE = "airtime-v3";
+// Network-first app shell (falls back to cache offline), so installed copies pick up updates.
+const CACHE = "airtime-v4";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon.svg"];
 
 self.addEventListener("install", (e) => {
@@ -10,5 +10,8 @@ self.addEventListener("activate", (e) => {
 });
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
-  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request)));
+  e.respondWith(fetch(e.request).then((res) => {
+    if (res.ok && new URL(e.request.url).origin === location.origin) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); }
+    return res;
+  }).catch(() => caches.match(e.request)));
 });

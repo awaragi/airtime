@@ -24,9 +24,9 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
-  /* Fixed side-by-side layout that scales with the window (resize freely) rather than reflowing. */
-  body { min-width: 320px; min-height: 160px; }
-  #app { display: grid; grid-template-columns: 1fr 1fr; height: 100%; gap: 2px; }
+  /* Fixed stacked layout (one wide panel on top of the other) that scales with the window (resize freely) rather than reflowing. */
+  body { min-width: 160px; min-height: 320px; }
+  #app { display: grid; grid-template-rows: 1fr 1fr; height: 100%; gap: 2px; }
   .side { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: var(--idle); cursor: pointer; user-select: none; -webkit-user-select: none;
     transition: background .15s; padding: 2vmin; container-type: size; }
@@ -36,7 +36,7 @@
   .name { font-size: 9cqmin; font-weight: 600; max-width: 100%; color: var(--c); outline: none;
     border-bottom: 1px dashed transparent; padding: 2px 6px; min-width: 3ch; text-align: center; cursor: text; }
   .name:focus { border-bottom-color: var(--c); }
-  .time { font-variant-numeric: tabular-nums; font-size: min(30cqw, 40cqh); font-weight: 700; line-height: 1.1; white-space: nowrap; }
+  .time { font-variant-numeric: tabular-nums; font-size: min(30cqw, 48cqh); font-weight: 700; line-height: 1.1; white-space: nowrap; }
   .share { font-size: min(9cqw, 10cqh); color: var(--muted); margin-top: 1cqh; }
   body { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
   .name { user-select: text; -webkit-user-select: text; -webkit-touch-callout: default; }
@@ -46,6 +46,8 @@
   dialog .row { display: flex; gap: 12px; justify-content: center; }
   dialog button { background: transparent; color: var(--text); border: 1px solid #2c333c; border-radius: 999px;
     padding: 10px 22px; font-size: 1rem; cursor: pointer; }
+  dialog p.refresh { margin: 16px 0 0; }
+  dialog p.refresh button { border: 0; color: var(--muted); font-size: .9rem; }
   dialog button.danger { background: #dc2626; border-color: #dc2626; }
 </style>
 </head>
@@ -68,6 +70,7 @@
     <button id="cancelBtn" type="button">Cancel</button>
     <button id="confirmBtn" class="danger" type="button">Reset</button>
   </div>
+  <p class="refresh"><button id="refreshBtn" type="button">Refresh app</button></p>
 </dialog>
 
 <script>
@@ -160,6 +163,14 @@
   document.getElementById("cancelBtn").addEventListener("click", () => dlg.close());
   document.getElementById("confirmBtn").addEventListener("click", () => {
     st.ms = { a: 0, b: 0 }; st.active = null; st.last = "a"; render(); save(); dlg.close();
+  });
+  // Force-refresh for installed copies: drop the service worker and caches, then reload from the network.
+  document.getElementById("refreshBtn").addEventListener("click", async () => {
+    try {
+      for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+      for (const k of await caches.keys()) await caches.delete(k);
+    } catch (e) {}
+    location.reload();
   });
   dlg.addEventListener("close", () => { swallowClick = false; });
   document.addEventListener("keydown", (e) => {
