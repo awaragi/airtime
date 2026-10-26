@@ -1,5 +1,5 @@
 // Cache-first app shell so Airtime opens and runs offline once installed.
-const CACHE = "airtime-v1";
+const CACHE = "airtime-v2";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/icon.svg"];
 
 self.addEventListener("install", (e) => {
