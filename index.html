@@ -152,6 +152,7 @@
   let pressTimer = null, pressX = 0, pressY = 0, swallowClick = false;
   const cancelPress = () => { clearTimeout(pressTimer); pressTimer = null; };
   document.addEventListener("pointerdown", (e) => {
+    swallowClick = false;
     if (dlg.open) return;
     pressX = e.clientX; pressY = e.clientY;
     pressTimer = setTimeout(() => { pressTimer = null; swallowClick = true; dlg.showModal(); }, 3000);
@@ -160,7 +161,7 @@
   for (const ev of ["pointerup", "pointercancel"]) document.addEventListener(ev, cancelPress);
   document.addEventListener("contextmenu", (e) => e.preventDefault());
   // The release that ends a long press must not also toggle a side.
-  document.addEventListener("click", (e) => { if (swallowClick) { swallowClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  document.addEventListener("click", (e) => { if (swallowClick && !dlg.contains(e.target)) { swallowClick = false; e.stopPropagation(); e.preventDefault(); } }, true);
   document.getElementById("cancelBtn").addEventListener("click", () => dlg.close());
   document.getElementById("confirmBtn").addEventListener("click", () => {
     st.ms = { a: 0, b: 0 }; st.active = null; st.last = "a"; render(); save(); dlg.close();
