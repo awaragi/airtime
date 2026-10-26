@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111418">
+<title>Talktime</title>
+<style>
+  :root {
+    --bg: #111418;
+    --idle: #1a1f26;
+    --text: #e8ecf1;
+    --muted: #7d8794;
+    --a: #3b82f6;
+    --b: #f59e0b;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+  #app { display: grid; grid-template-columns: 1fr 1fr; height: 100%; gap: 2px; }
+  @media (orientation: portrait) { #app { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
+  .side { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--idle); cursor: pointer; user-select: none; -webkit-user-select: none;
+    transition: background .15s; padding: 16px; }
+  .side[data-who="a"] { --c: var(--a); }
+  .side[data-who="b"] { --c: var(--b); }
+  .side.active { background: color-mix(in srgb, var(--c) 28%, var(--idle)); box-shadow: inset 0 0 0 4px var(--c); }
+  .name { font-size: clamp(1.1rem, 4vw, 2rem); font-weight: 600; color: var(--c); outline: none;
+    border-bottom: 1px dashed transparent; padding: 2px 6px; min-width: 3ch; text-align: center; cursor: text; }
+  .name:focus { border-bottom-color: var(--c); }
+  .time { font-variant-numeric: tabular-nums; font-size: clamp(3rem, 14vw, 9rem); font-weight: 700; line-height: 1.1; }
+  .share { font-size: clamp(1rem, 3vw, 1.6rem); color: var(--muted); margin-top: 4px; }
+  .state { position: absolute; top: 14px; right: 16px; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .side.active .state { color: var(--c); }
+  .side.active .state::before { content: "● "; animation: blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  #controls { position: fixed; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    display: flex; gap: 8px; z-index: 5; }
+  #controls button { background: rgba(17,20,24,.85); color: var(--text); border: 1px solid #2c333c; border-radius: 999px;
+    padding: 10px 18px; font-size: .95rem; cursor: pointer; backdrop-filter: blur(6px); }
+  #controls button:hover { border-color: var(--muted); }
+  #hint { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); font-size: .75rem; color: var(--muted);
+    z-index: 5; pointer-events: none; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="side" data-who="a" id="sideA">
+    <div class="state" id="stateA">paused</div>
+    <div class="name" id="nameA" contenteditable="plaintext-only" spellcheck="false">Me</div>
+    <div class="time" id="timeA">0:00</div>
+    <div class="share" id="shareA">0%</div>
+  </div>
+  <div class="side" data-who="b" id="sideB">
+    <div class="state" id="stateB">paused</div>
+    <div class="name" id="nameB" contenteditable="plaintext-only" spellcheck="false">Wife</div>
+    <div class="time" id="timeB">0:00</div>
+    <div class="share" id="shareB">0%</div>
+  </div>
+</div>
+<div id="hint">Tap a side to switch. Tap the active side to pause. Space switches.</div>
+<div id="controls">
+  <button id="pauseBtn" type="button">Pause</button>
+  <button id="resetBtn" type="button">Reset</button>
+</div>
+
+<script>
+(() => {
+  const KEY = "talktime:v1";
+  const who = ["a", "b"];
+  const el = {};
+  for (const w of who) {
+    el[w] = { side: document.getElementById("side" + w.toUpperCase()), name: document.getElementById("name" + w.toUpperCase()),
+      time: document.getElementById("time" + w.toUpperCase()), share: document.getElementById("share" + w.toUpperCase()),
+      state: document.getElementById("state" + w.toUpperCase()) };
+  }
+  // state: ms accumulated per side, which side is running (null = paused), and when it started.
+  let st = { ms: { a: 0, b: 0 }, active: null, since: 0, names: { a: "Me", b: "Wife" }, last: "a" };
+
+  try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved && saved.ms) st = { ...st, ...saved }; } catch (e) {}
+  for (const w of who) el[w].name.textContent = st.names[w];
+
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+  const elapsed = (w) => st.ms[w] + (st.active === w ? Date.now() - st.since : 0);
+
+  function fmt(ms) {
+    const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const p = (n) => String(n).padStart(2, "0");
+    return h ? `${h}:${p(m)}:${p(sec)}` : `${m}:${p(sec)}`;
+  }
+
+  function stop() {
+    if (st.active) { st.ms[st.active] += Date.now() - st.since; st.last = st.active; st.active = null; }
+  }
+  function start(w) {
+    if (st.active === w) return;
+    stop();
+    st.active = w; st.since = Date.now();
+    wake();
+  }
+  function toggleSide(w) { st.active === w ? stop() : start(w); render(); save(); }
+  function switchOther() {
+    // Space / one-click switch: flip to the other side; if paused, resume with the side opposite the last one that ran.
+    const next = st.active ? (st.active === "a" ? "b" : "a") : (st.last === "a" ? "b" : "a");
+    start(next); render(); save();
+  }
+
+  function render() {
+    const a = elapsed("a"), b = elapsed("b"), tot = a + b;
+    const ms = { a, b };
+    for (const w of who) {
+      el[w].time.textContent = fmt(ms[w]);
+      el[w].share.textContent = tot ? Math.round((ms[w] / tot) * 100) + "%" : "0%";
+      el[w].side.classList.toggle("active", st.active === w);
+      el[w].state.textContent = st.active === w ? "talking" : "paused";
+    }
+    document.getElementById("pauseBtn").textContent = st.active ? "Pause" : "Resume";
+    document.title = st.active ? `${fmt(ms[st.active])} · ${st.names[st.active]}` : "Talktime";
+  }
+
+  // Screen wake lock so the phone doesn't sleep mid-conversation.
+  let lock = null;
+  async function wake() { try { if ("wakeLock" in navigator && !lock) { lock = await navigator.wakeLock.request("screen"); lock.addEventListener("release", () => (lock = null)); } } catch (e) {} }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { if (st.active) wake(); render(); } });
+
+  for (const w of who) {
+    el[w].side.addEventListener("click", () => toggleSide(w));
+    el[w].name.addEventListener("click", (e) => e.stopPropagation());
+    el[w].name.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
+    el[w].name.addEventListener("input", () => { st.names[w] = el[w].name.textContent.trim() || (w === "a" ? "Me" : "Wife"); save(); });
+  }
+  document.getElementById("pauseBtn").addEventListener("click", () => {
+    if (st.active) { stop(); } else { start(st.last); }
+    render(); save();
+  });
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    if (elapsed("a") + elapsed("b") > 0 && !confirm("Reset both timers?")) return;
+    st.ms = { a: 0, b: 0 }; st.active = null; st.last = "a"; render(); save();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") { e.preventDefault(); switchOther(); }
+    else if (e.code === "ArrowLeft") { start("a"); render(); save(); }
+    else if (e.code === "ArrowRight") { start("b"); render(); save(); }
+  });
+
+  // A tab that was open while running keeps its start time, so a reload resumes correctly.
+  render(); if (st.active) wake();
+  setInterval(render, 200);
+})();
+</script>
+</body>
+</html>
